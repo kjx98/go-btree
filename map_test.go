@@ -1310,3 +1310,69 @@ func TestMapCopy(t *testing.T) {
 		panic("!")
 	}
 }
+
+func BenchmarkMapInsertSeq(b *testing.B) {
+	b.StopTimer()
+	var tree Map[int, int]
+	for i := 0; i < 1e6; i++ {
+		tree.Set(i, i)
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		v := (rand.Int() % 1e6) + 2e6
+		tree.Set(i, v)
+	}
+}
+
+func BenchmarkMapInsertRandom(b *testing.B) {
+	b.StopTimer()
+	var tree Map[int, int]
+	for i := 0; i < 1e6; i++ {
+		tree.Set(i, i)
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		v := (rand.Int() % 1e6) + 2e6
+		tree.Set(v, i)
+	}
+}
+
+func BenchmarkMapFind(b *testing.B) {
+	b.StopTimer()
+	var tree Map[int, int]
+	for i := 0; i < 1e6; i++ {
+		tree.Set(i, i)
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		v := (rand.Int() % 1e6)
+		tree.Get(v)
+	}
+}
+
+func BenchmarkMapDelete(b *testing.B) {
+	b.StopTimer()
+	var tree Map[int, int]
+	for i := 0; i < 1e6; i++ {
+		tree.Set(i, i)
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		v := (rand.Int() % 1e6)
+		tree.Delete(v)
+	}
+}
+
+func BenchmarkMapDeleteLeft(b *testing.B) {
+	b.StopTimer()
+	var tree Map[int, int]
+	for i := 0; i < 5e6; i++ {
+		tree.Set(i, i)
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		if tree.Len() > 0 {
+			tree.DeleteAt(0)
+		}
+	}
+}
