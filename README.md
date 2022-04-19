@@ -1,8 +1,8 @@
 # btree
 
-[![GoDoc](https://godoc.org/github.com/tidwall/btree?status.svg)](https://godoc.org/github.com/tidwall/btree)
+[![GoDoc](https://godoc.org/github.com/kjx98/go-btree?status.svg)](https://godoc.org/github.com/kjx98/go-btree)
 
-An efficient [B-tree](https://en.wikipedia.org/wiki/B-tree) implementation in Go.
+An efficient [B-tree](https://en.wikipedia.org/wiki/B-tree) implementation in Go, forked from tidwall(https://github.com/tidwall/btree).
 
 ## Features
 
@@ -18,7 +18,7 @@ An efficient [B-tree](https://en.wikipedia.org/wiki/B-tree) implementation in Go
 To start using this package, install Go and run:
 
 ```sh
-$ go get github.com/tidwall/btree
+$ go get github.com/kjx98/go-btree
 ```
 
 ## B-tree types
@@ -69,7 +69,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/tidwall/btree"
+	"github.com/kjx98/go-btree"
 )
 
 func main() {
@@ -148,7 +148,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/tidwall/btree"
+	"github.com/kjx98/go-btree"
 )
 
 func main() {
@@ -234,7 +234,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/tidwall/btree"
+	"github.com/kjx98/go-btree"
 )
 
 type Item struct {
@@ -354,7 +354,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/tidwall/btree"
+	"github.com/kjx98/go-btree"
 )
 
 type Item struct {
@@ -507,6 +507,7 @@ go-arr:     for-loop      1,000,000 ops in 4ms, 272,234,997/sec, 3 ns/op
 
 ## Contact
 
+Jesse Kuang [@kjx98](email://21cn.com/jkuang)
 Josh Baker [@tidwall](http://twitter.com/tidwall)
 
 ## License
