@@ -1,6 +1,7 @@
 package btree
 
 import (
+	"github.com/tidwall/btree"
 	"math/rand"
 	"reflect"
 	"sort"
@@ -106,7 +107,7 @@ func TestSet(t *testing.T) {
 			msg, ok := recover().(string)
 			assert(ok && msg == "nil item")
 		}()
-		tr := NewNonConcurrent(intLess)
+		tr := btree.NewNonConcurrent(intLess)
 		tr.Set(nil)
 	}()
 	func() {
@@ -114,7 +115,7 @@ func TestSet(t *testing.T) {
 			msg, ok := recover().(string)
 			assert(ok && msg == "nil item")
 		}()
-		tr := NewNonConcurrent(intLess)
+		tr := btree.NewNonConcurrent(intLess)
 		tr.Load(nil)
 	}()
 	for i := 0; i < N; i++ {
