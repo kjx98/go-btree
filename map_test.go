@@ -21,8 +21,8 @@ func testMapMakeItem(x int) (item testMapKind) {
 }
 
 // testNewBTree must return an operational btree for testing.
-func testMapNewBTree() *Map[testMapKind, testMapKind] {
-	return new(Map[testMapKind, testMapKind])
+func testMapNewBTree() *bpTree[testMapKind, testMapKind] {
+	return Map[testMapKind, testMapKind]()
 }
 
 func randMapKeys(N int) (keys []testMapKind) {
@@ -33,14 +33,14 @@ func randMapKeys(N int) (keys []testMapKind) {
 	return keys
 }
 
-func (tr *Map[K, V]) lt(a, b K) bool  { return tr.less(a, b) }
-func (tr *Map[K, V]) eq(a, b K) bool  { return !(tr.lt(a, b) || tr.lt(b, a)) }
-func (tr *Map[K, V]) lte(a, b K) bool { return tr.lt(a, b) || tr.eq(a, b) }
-func (tr *Map[K, V]) gt(a, b K) bool  { return tr.lt(b, a) }
-func (tr *Map[K, V]) gte(a, b K) bool { return tr.gt(a, b) || tr.eq(a, b) }
+func (tr *bpTree[K, V]) lt(a, b K) bool  { return tr.less(a, b) }
+func (tr *bpTree[K, V]) eq(a, b K) bool  { return !(tr.lt(a, b) || tr.lt(b, a)) }
+func (tr *bpTree[K, V]) lte(a, b K) bool { return tr.lt(a, b) || tr.eq(a, b) }
+func (tr *bpTree[K, V]) gt(a, b K) bool  { return tr.lt(b, a) }
+func (tr *bpTree[K, V]) gte(a, b K) bool { return tr.gt(a, b) || tr.eq(a, b) }
 
 func mapKindsAreEqual(a, b []testMapKind) bool {
-	var tr Map[testMapKind, testMapKind]
+	tr := Map[testMapKind, testMapKind]()
 	if len(a) != len(b) {
 		return false
 	}
@@ -898,7 +898,7 @@ func TestMapVarious(t *testing.T) {
 	}
 }
 
-func (tr *Map[K, V]) sane() {
+func (tr *bpTree[K, V]) sane() {
 	if err := tr.Sane(); err != nil {
 		panic(err)
 	}
@@ -915,7 +915,7 @@ func (err saneMapError) Error() string {
 // - deep count matches the btree count.
 // - all nodes have the correct number of items and counts.
 // - all items are in order.
-func (tr *Map[K, V]) Sane() error {
+func (tr *bpTree[K, V]) Sane() error {
 	if tr == nil {
 		return nil
 	}
@@ -939,7 +939,7 @@ func (tr *Map[K, V]) Sane() error {
 
 // btree_saneheight returns true if the height of all leaves match the height
 // of the btree.
-func (tr *Map[K, V]) saneheight() bool {
+func (tr *bpTree[K, V]) saneheight() bool {
 	height := tr.Height()
 	if tr.root != nil {
 		if height == 0 {
@@ -970,7 +970,7 @@ func (n *mapNode[K, V]) saneheight(height, maxheight int) bool {
 }
 
 // btree_deepcount returns the number of items in the btree.
-func (tr *Map[K, V]) deepcount() int {
+func (tr *bpTree[K, V]) deepcount() int {
 	if tr.root != nil {
 		return tr.root.deepcount()
 	}
@@ -990,7 +990,7 @@ func (n *mapNode[K, V]) deepcount() int {
 	return count
 }
 
-func (tr *Map[K, V]) nodesaneprops(n *mapNode[K, V], height int) bool {
+func (tr *bpTree[K, V]) nodesaneprops(n *mapNode[K, V], height int) bool {
 	if height == 1 {
 		if len(n.items) < 1 || len(n.items) > maxItems {
 			println(len(n.items) < 1)
@@ -1021,14 +1021,14 @@ func (tr *Map[K, V]) nodesaneprops(n *mapNode[K, V], height int) bool {
 	return true
 }
 
-func (tr *Map[K, V]) saneprops() bool {
+func (tr *bpTree[K, V]) saneprops() bool {
 	if tr.root != nil {
 		return tr.nodesaneprops(tr.root, 1)
 	}
 	return true
 }
 
-func (tr *Map[K, V]) sanenilsnode(n *mapNode[K, V]) bool {
+func (tr *bpTree[K, V]) sanenilsnode(n *mapNode[K, V]) bool {
 	items := n.items[:cap(n.items):cap(n.items)]
 	for i := len(n.items); i < len(items); i++ {
 		if !tr.eq(items[i].key, tr.empty.key) {
@@ -1059,14 +1059,14 @@ func (tr *Map[K, V]) sanenilsnode(n *mapNode[K, V]) bool {
 // sanenils checks that all the slots in the item slice that are not used,
 //   n.items[len(n.items):cap(n.items):cap(n.items)]
 // are equal to the empty value of the kind.
-func (tr *Map[K, V]) sanenils() bool {
+func (tr *bpTree[K, V]) sanenils() bool {
 	if tr.root != nil {
 		return tr.sanenilsnode(tr.root)
 	}
 	return true
 }
 
-func (tr *Map[K, V]) saneorder() bool {
+func (tr *bpTree[K, V]) saneorder() bool {
 	var last K
 	var count int
 	var bad bool
@@ -1170,7 +1170,7 @@ func TestMapIter(t *testing.T) {
 }
 
 func TestMapIterSeek(t *testing.T) {
-	var tr Map[int, struct{}]
+	tr := Map[int, struct{}]()
 
 	var all []int
 	for i := 0; i < 10000; i++ {
@@ -1196,7 +1196,7 @@ func TestMapIterSeek(t *testing.T) {
 }
 
 func TestMapIterSeekPrefix(t *testing.T) {
-	var tr Map[int, struct{}]
+	tr := Map[int, struct{}]()
 	count := 10_000
 	for i := 0; i < count; i++ {
 		tr.Set(i*2, struct{}{})
@@ -1208,7 +1208,7 @@ func TestMapIterSeekPrefix(t *testing.T) {
 	}
 }
 
-func copyMapEntries(m *Map[int, int]) []mapPair[int, int] {
+func copyMapEntries(m *bpTree[int, int]) []mapPair[int, int] {
 	all := make([]mapPair[int, int], m.Len())
 	keys := m.Keys()
 	vals := m.Values()
@@ -1226,7 +1226,7 @@ func mapEntriesEqual(a, b []mapPair[int, int]) bool {
 	return reflect.DeepEqual(a, b)
 }
 
-func copyMapTest(N int, m1 *Map[int, int], e11 []mapPair[int, int], deep bool) {
+func copyMapTest(N int, m1 *bpTree[int, int], e11 []mapPair[int, int], deep bool) {
 	e12 := copyMapEntries(m1)
 	if !mapEntriesEqual(e11, e12) {
 		panic("!")
@@ -1287,9 +1287,9 @@ func copyMapTest(N int, m1 *Map[int, int], e11 []mapPair[int, int], deep bool) {
 func TestMapCopy(t *testing.T) {
 	N := 1_000
 	// create the initial map
-	m1 := new(Map[int, int])
+	m1 := Map[testMapKind, int]()
 	for m1.Len() < N {
-		m1.Set(rand.Int(), rand.Int())
+		m1.Set(testMapKind(rand.Int()), rand.Int())
 	}
 	e11 := copyMapEntries(m1)
 	dur := time.Second * 2
@@ -1313,61 +1313,61 @@ func TestMapCopy(t *testing.T) {
 
 func BenchmarkMapInsertSeq(b *testing.B) {
 	b.StopTimer()
-	var tree Map[int, int]
+	tree := Map[testMapKind, int]()
 	for i := 0; i < 1e6; i++ {
-		tree.Set(i, i)
+		tree.Set(testMapKind(i), i)
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		v := (rand.Int() % 1e6) + 2e6
-		tree.Set(i, v)
+		tree.Set(testMapKind(i), v)
 	}
 }
 
 func BenchmarkMapInsertRandom(b *testing.B) {
 	b.StopTimer()
-	var tree Map[int, int]
+	tree := Map[testMapKind, int]()
 	for i := 0; i < 1e6; i++ {
-		tree.Set(i, i)
+		tree.Set(testMapKind(i), i)
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		v := (rand.Int() % 1e6) + 2e6
-		tree.Set(v, i)
+		tree.Set(testMapKind(v), i)
 	}
 }
 
 func BenchmarkMapFind(b *testing.B) {
 	b.StopTimer()
-	var tree Map[int, int]
+	tree := Map[testMapKind, int]()
 	for i := 0; i < 1e6; i++ {
-		tree.Set(i, i)
+		tree.Set(testMapKind(i), i)
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		v := (rand.Int() % 1e6)
-		tree.Get(v)
+		tree.Get(testMapKind(v))
 	}
 }
 
 func BenchmarkMapDelete(b *testing.B) {
 	b.StopTimer()
-	var tree Map[int, int]
+	tree := Map[testMapKind, int]()
 	for i := 0; i < 1e6; i++ {
-		tree.Set(i, i)
+		tree.Set(testMapKind(i), i)
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		v := (rand.Int() % 1e6)
-		tree.Delete(v)
+		tree.Delete(testMapKind(v))
 	}
 }
 
 func BenchmarkMapDeleteLeft(b *testing.B) {
 	b.StopTimer()
-	var tree Map[int, int]
+	tree := Map[testMapKind, int]()
 	for i := 0; i < 5e6; i++ {
-		tree.Set(i, i)
+		tree.Set(testMapKind(i), i)
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
