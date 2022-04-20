@@ -990,7 +990,7 @@ func (iter *MapIter[K, V]) Prev() bool {
 
 // Key returns the current iterator item key.
 func (iter *MapIter[K, V]) End() bool {
-	return iter.item.atend
+	return iter.atend
 }
 
 // Key returns the current iterator item key.
