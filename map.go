@@ -807,10 +807,10 @@ type mapIterStackItem[K any, V any] struct {
 }
 
 // Iter returns a read-only iterator.
-func (tr *Map[K, V]) Iter() MapIter[K, V] {
+func (tr *Map[K, V]) Iter() *MapIter[K, V] {
 	var iter MapIter[K, V]
 	iter.tr = tr
-	return iter
+	return &iter
 }
 
 // Seek to item greater-or-equal-to key.
