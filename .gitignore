@@ -2,11 +2,6 @@
 *.o
 *.ko
 *.obj
-*.elf
-
-# Precompiled Headers
-*.gch
-*.pch
 
 # Libraries
 *.lib
@@ -24,9 +19,6 @@
 *.exe
 *.out
 *.app
-*.i*86
-*.x86_64
-*.hex
 
 # Debug/Backup files
 *.dSYM/
@@ -37,7 +29,6 @@
 # Build directory and files
 *.depend
 *.layout
-build/
 bin/
 pkg/
 obj/
