@@ -19,9 +19,11 @@ type mapPair[K any, V any] struct {
 
 type lessFunc[K any] func(a, b K) bool
 
+/*
 func lessCmp[K ordered](a, b K) bool {
 	return a < b
 }
+*/
 
 type bpTree[K any, V any] struct {
 	cow   *cow
@@ -32,7 +34,10 @@ type bpTree[K any, V any] struct {
 }
 
 func Map[K ordered, V any]() *bpTree[K, V] {
-	return &bpTree[K, V]{less: lessCmp[K]}
+	return &bpTree[K, V]{less: func(a, b K) bool {
+		return a < b
+	},
+	}
 }
 
 func MapNew[K any, V any](fn lessFunc[K]) *bpTree[K, V] {
