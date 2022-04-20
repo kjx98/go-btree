@@ -21,7 +21,7 @@ type mapPair[K any, V any] struct {
 	key   K
 }
 
-type lessFunc[K any] func(a, b K) bool
+type LessFunc[K any] func(a, b K) bool
 
 /*
 func lessCmp[K ordered](a, b K) bool {
@@ -34,7 +34,7 @@ type Map[K any, V any] struct {
 	root  *mapNode[K, V]
 	count int
 	empty mapPair[K, V]
-	less  lessFunc[K]
+	less  LessFunc[K]
 }
 
 func New[K ordered, V any]() *Map[K, V] {
@@ -44,7 +44,7 @@ func New[K ordered, V any]() *Map[K, V] {
 	}
 }
 
-func MapNew[K any, V any](fn lessFunc[K]) *Map[K, V] {
+func MapNew[K any, V any](fn LessFunc[K]) *Map[K, V] {
 	return &Map[K, V]{less: fn}
 }
 
@@ -986,6 +986,11 @@ func (iter *MapIter[K, V]) Prev() bool {
 	s = &iter.stack[len(iter.stack)-1]
 	iter.item = s.n.items[s.i]
 	return true
+}
+
+// Key returns the current iterator item key.
+func (iter *MapIter[K, V]) End() bool {
+	return iter.item.atend
 }
 
 // Key returns the current iterator item key.
