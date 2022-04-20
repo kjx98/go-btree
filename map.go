@@ -3,6 +3,10 @@
 // license that can be found in the LICENSE file.
 package btree
 
+import "errors"
+
+var errNoCmpFn = errors.New("avl: no comparison function")
+
 type ordered interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 |
 		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
@@ -25,7 +29,7 @@ func lessCmp[K ordered](a, b K) bool {
 }
 */
 
-type bpTree[K any, V any] struct {
+type Map[K any, V any] struct {
 	cow   *cow
 	root  *mapNode[K, V]
 	count int
@@ -33,15 +37,15 @@ type bpTree[K any, V any] struct {
 	less  lessFunc[K]
 }
 
-func Map[K ordered, V any]() *bpTree[K, V] {
-	return &bpTree[K, V]{less: func(a, b K) bool {
+func New[K ordered, V any]() *Map[K, V] {
+	return &Map[K, V]{less: func(a, b K) bool {
 		return a < b
 	},
 	}
 }
 
-func MapNew[K any, V any](fn lessFunc[K]) *bpTree[K, V] {
-	return &bpTree[K, V]{less: fn}
+func MapNew[K any, V any](fn lessFunc[K]) *Map[K, V] {
+	return &Map[K, V]{less: fn}
 }
 
 type mapNode[K any, V any] struct {
@@ -55,7 +59,7 @@ type mapNode[K any, V any] struct {
 // called outside of heavy copy-on-write situations. Marking it "noinline"
 // allows for the parent cowLoad to be inlined.
 // go:noinline
-func (tr *bpTree[K, V]) copy(n *mapNode[K, V]) *mapNode[K, V] {
+func (tr *Map[K, V]) copy(n *mapNode[K, V]) *mapNode[K, V] {
 	n2 := new(mapNode[K, V])
 	n2.cow = tr.cow
 	n2.count = n.count
@@ -70,15 +74,15 @@ func (tr *bpTree[K, V]) copy(n *mapNode[K, V]) *mapNode[K, V] {
 }
 
 // cowLoad loads the provided node and, if needed, performs a copy-on-write.
-func (tr *bpTree[K, V]) cowLoad(cn **mapNode[K, V]) *mapNode[K, V] {
+func (tr *Map[K, V]) cowLoad(cn **mapNode[K, V]) *mapNode[K, V] {
 	if (*cn).cow != tr.cow {
 		*cn = tr.copy(*cn)
 	}
 	return *cn
 }
 
-func (tr *bpTree[K, V]) Copy() *bpTree[K, V] {
-	tr2 := MapNew[K, V](tr.less)
+func (tr *Map[K, V]) Copy() *Map[K, V] {
+	tr2 := &Map[K, V]{}
 	*tr2 = *tr
 	tr2.cow = new(cow)
 	return tr2
@@ -90,7 +94,7 @@ func (tr *Map[K, V]) less(a, b K) bool {
 }
 */
 
-func (tr *bpTree[K, V]) newNode(leaf bool) *mapNode[K, V] {
+func (tr *Map[K, V]) newNode(leaf bool) *mapNode[K, V] {
 	n := new(mapNode[K, V])
 	n.cow = tr.cow
 	if !leaf {
@@ -104,7 +108,7 @@ func (n *mapNode[K, V]) leaf() bool {
 	return n.children == nil
 }
 
-func (tr *bpTree[K, V]) find(n *mapNode[K, V], key K) (index int, found bool) {
+func (tr *Map[K, V]) find(n *mapNode[K, V], key K) (index int, found bool) {
 	// fast path for no hinting
 	low := 0
 	high := len(n.items)
@@ -123,9 +127,12 @@ func (tr *bpTree[K, V]) find(n *mapNode[K, V], key K) (index int, found bool) {
 }
 
 // Set or replace a value for a key
-func (tr *bpTree[K, V]) Set(key K, value V) (V, bool) {
+func (tr *Map[K, V]) Set(key K, value V) (V, bool) {
 	item := mapPair[K, V]{key: key, value: value}
 	if tr.root == nil {
+		if tr.less == nil {
+			panic(errNoCmpFn)
+		}
 		tr.root = tr.newNode(true)
 		tr.root.items = append([]mapPair[K, V]{}, item)
 		tr.root.count = 1
@@ -150,7 +157,7 @@ func (tr *bpTree[K, V]) Set(key K, value V) (V, bool) {
 	return tr.empty.value, false
 }
 
-func (tr *bpTree[K, V]) nodeSplit(n *mapNode[K, V],
+func (tr *Map[K, V]) nodeSplit(n *mapNode[K, V],
 ) (right *mapNode[K, V], median mapPair[K, V]) {
 	i := maxItems / 2
 	median = n.items[i]
@@ -190,7 +197,7 @@ func (n *mapNode[K, V]) updateCount() {
 	}
 }
 
-func (tr *bpTree[K, V]) nodeSet(pn **mapNode[K, V], item mapPair[K, V],
+func (tr *Map[K, V]) nodeSet(pn **mapNode[K, V], item mapPair[K, V],
 ) (prev V, replaced bool, split bool) {
 	n := tr.cowLoad(pn)
 	i, found := tr.find(n, item.key)
@@ -229,7 +236,7 @@ func (tr *bpTree[K, V]) nodeSet(pn **mapNode[K, V], item mapPair[K, V],
 	return prev, replaced, false
 }
 
-func (tr *bpTree[K, V]) Scan(iter func(key K, value V) bool) {
+func (tr *Map[K, V]) Scan(iter func(key K, value V) bool) {
 	if tr.root == nil {
 		return
 	}
@@ -257,7 +264,7 @@ func (n *mapNode[K, V]) scan(iter func(key K, value V) bool) bool {
 }
 
 // Get a value for key
-func (tr *bpTree[K, V]) Get(key K) (V, bool) {
+func (tr *Map[K, V]) Get(key K) (V, bool) {
 	if tr.root == nil {
 		return tr.empty.value, false
 	}
@@ -276,13 +283,13 @@ func (tr *bpTree[K, V]) Get(key K) (V, bool) {
 }
 
 // Len returns the number of items in the tree
-func (tr *bpTree[K, V]) Len() int {
+func (tr *Map[K, V]) Len() int {
 	return tr.count
 }
 
 // Delete a value for a key and returns the deleted value.
 // Returns false if there was no value by that key found.
-func (tr *bpTree[K, V]) Delete(key K) (V, bool) {
+func (tr *Map[K, V]) Delete(key K) (V, bool) {
 	if tr.root == nil {
 		return tr.empty.value, false
 	}
@@ -300,7 +307,7 @@ func (tr *bpTree[K, V]) Delete(key K) (V, bool) {
 	return prev.value, true
 }
 
-func (tr *bpTree[K, V]) delete(pn **mapNode[K, V], max bool, key K,
+func (tr *Map[K, V]) delete(pn **mapNode[K, V], max bool, key K,
 ) (mapPair[K, V], bool) {
 	n := tr.cowLoad(pn)
 	var i int
@@ -352,7 +359,7 @@ func (tr *bpTree[K, V]) delete(pn **mapNode[K, V], max bool, key K,
 // nodeRebalance rebalances the child nodes following a delete operation.
 // Provide the index of the child node with the number of items that fell
 // below minItems.
-func (tr *bpTree[K, V]) nodeRebalance(n *mapNode[K, V], i int) {
+func (tr *Map[K, V]) nodeRebalance(n *mapNode[K, V], i int) {
 	if i == len(n.items) {
 		i--
 	}
@@ -435,7 +442,7 @@ func (tr *bpTree[K, V]) nodeRebalance(n *mapNode[K, V], i int) {
 // Ascend the tree within the range [pivot, last]
 // Pass nil for pivot to scan all item in ascending order
 // Return false to stop iterating
-func (tr *bpTree[K, V]) Ascend(pivot K, iter func(key K, value V) bool) {
+func (tr *Map[K, V]) Ascend(pivot K, iter func(key K, value V) bool) {
 	if tr.root == nil {
 		return
 	}
@@ -444,7 +451,7 @@ func (tr *bpTree[K, V]) Ascend(pivot K, iter func(key K, value V) bool) {
 
 // The return value of this function determines whether we should keep iterating
 // upon this functions return.
-func (tr *bpTree[K, V]) ascend(n *mapNode[K, V], pivot K,
+func (tr *Map[K, V]) ascend(n *mapNode[K, V], pivot K,
 	iter func(key K, value V) bool,
 ) bool {
 	i, found := tr.find(n, pivot)
@@ -472,7 +479,7 @@ func (tr *bpTree[K, V]) ascend(n *mapNode[K, V], pivot K,
 	return true
 }
 
-func (tr *bpTree[K, V]) Reverse(iter func(key K, value V) bool) {
+func (tr *Map[K, V]) Reverse(iter func(key K, value V) bool) {
 	if tr.root == nil {
 		return
 	}
@@ -505,14 +512,14 @@ func (n *mapNode[K, V]) reverse(iter func(key K, value V) bool) bool {
 // Descend the tree within the range [pivot, first]
 // Pass nil for pivot to scan all item in descending order
 // Return false to stop iterating
-func (tr *bpTree[K, V]) Descend(pivot K, iter func(key K, value V) bool) {
+func (tr *Map[K, V]) Descend(pivot K, iter func(key K, value V) bool) {
 	if tr.root == nil {
 		return
 	}
 	tr.descend(tr.root, pivot, iter)
 }
 
-func (tr *bpTree[K, V]) descend(n *mapNode[K, V], pivot K,
+func (tr *Map[K, V]) descend(n *mapNode[K, V], pivot K,
 	iter func(key K, value V) bool,
 ) bool {
 	i, found := tr.find(n, pivot)
@@ -538,7 +545,7 @@ func (tr *bpTree[K, V]) descend(n *mapNode[K, V], pivot K,
 }
 
 // Load is for bulk loading pre-sorted items
-func (tr *bpTree[K, V]) Load(key K, value V) (V, bool) {
+func (tr *Map[K, V]) Load(key K, value V) (V, bool) {
 	item := mapPair[K, V]{key: key, value: value}
 	if tr.root == nil {
 		return tr.Set(item.key, item.value)
@@ -572,7 +579,7 @@ func (tr *bpTree[K, V]) Load(key K, value V) (V, bool) {
 
 // Min returns the minimum item in tree.
 // Returns nil if the treex has no items.
-func (tr *bpTree[K, V]) Min() (K, V, bool) {
+func (tr *Map[K, V]) Min() (K, V, bool) {
 	if tr.root == nil {
 		return tr.empty.key, tr.empty.value, false
 	}
@@ -588,7 +595,7 @@ func (tr *bpTree[K, V]) Min() (K, V, bool) {
 
 // Max returns the maximum item in tree.
 // Returns nil if the tree has no items.
-func (tr *bpTree[K, V]) Max() (K, V, bool) {
+func (tr *Map[K, V]) Max() (K, V, bool) {
 	if tr.root == nil {
 		return tr.empty.key, tr.empty.value, false
 	}
@@ -604,7 +611,7 @@ func (tr *bpTree[K, V]) Max() (K, V, bool) {
 
 // PopMin removes the minimum item in tree and returns it.
 // Returns nil if the tree has no items.
-func (tr *bpTree[K, V]) PopMin() (K, V, bool) {
+func (tr *Map[K, V]) PopMin() (K, V, bool) {
 	if tr.root == nil {
 		return tr.empty.key, tr.empty.value, false
 	}
@@ -646,7 +653,7 @@ func (tr *bpTree[K, V]) PopMin() (K, V, bool) {
 
 // PopMax removes the minimum item in tree and returns it.
 // Returns nil if the tree has no items.
-func (tr *bpTree[K, V]) PopMax() (K, V, bool) {
+func (tr *Map[K, V]) PopMax() (K, V, bool) {
 	if tr.root == nil {
 		return tr.empty.key, tr.empty.value, false
 	}
@@ -687,7 +694,7 @@ func (tr *bpTree[K, V]) PopMax() (K, V, bool) {
 
 // GetAt returns the value at index.
 // Return nil if the tree is empty or the index is out of bounds.
-func (tr *bpTree[K, V]) GetAt(index int) (K, V, bool) {
+func (tr *Map[K, V]) GetAt(index int) (K, V, bool) {
 	if tr.root == nil || index < 0 || index >= tr.count {
 		return tr.empty.key, tr.empty.value, false
 	}
@@ -711,7 +718,7 @@ func (tr *bpTree[K, V]) GetAt(index int) (K, V, bool) {
 
 // DeleteAt deletes the item at index.
 // Return nil if the tree is empty or the index is out of bounds.
-func (tr *bpTree[K, V]) DeleteAt(index int) (K, V, bool) {
+func (tr *Map[K, V]) DeleteAt(index int) (K, V, bool) {
 	if tr.root == nil || index < 0 || index >= tr.count {
 		return tr.empty.key, tr.empty.value, false
 	}
@@ -769,7 +776,7 @@ outer:
 
 // Height returns the height of the tree.
 // Returns zero if tree has no items.
-func (tr *bpTree[K, V]) Height() int {
+func (tr *Map[K, V]) Height() int {
 	var height int
 	if tr.root != nil {
 		n := tr.root
@@ -786,7 +793,7 @@ func (tr *bpTree[K, V]) Height() int {
 
 // MapIter represents an iterator for btree.Map
 type MapIter[K any, V any] struct {
-	tr      *bpTree[K, V]
+	tr      *Map[K, V]
 	seeked  bool
 	atstart bool
 	atend   bool
@@ -800,7 +807,7 @@ type mapIterStackItem[K any, V any] struct {
 }
 
 // Iter returns a read-only iterator.
-func (tr *bpTree[K, V]) Iter() MapIter[K, V] {
+func (tr *Map[K, V]) Iter() MapIter[K, V] {
 	var iter MapIter[K, V]
 	iter.tr = tr
 	return iter
@@ -992,7 +999,7 @@ func (iter *MapIter[K, V]) Value() V {
 }
 
 // Values returns all the values in order.
-func (tr *bpTree[K, V]) Values() []V {
+func (tr *Map[K, V]) Values() []V {
 	values := make([]V, 0, tr.Len())
 	if tr.root != nil {
 		values = tr.root.values(values)
@@ -1015,7 +1022,7 @@ func (n *mapNode[K, V]) values(values []V) []V {
 }
 
 // Keys returns all the keys in order.
-func (tr *bpTree[K, V]) Keys() []K {
+func (tr *Map[K, V]) Keys() []K {
 	keys := make([]K, 0, tr.Len())
 	if tr.root != nil {
 		keys = tr.root.keys(keys)
@@ -1038,7 +1045,7 @@ func (n *mapNode[K, V]) keys(keys []K) []K {
 }
 
 // KeyValues returns all the keys and values in order.
-func (tr *bpTree[K, V]) KeyValues() ([]K, []V) {
+func (tr *Map[K, V]) KeyValues() ([]K, []V) {
 	keys := make([]K, 0, tr.Len())
 	values := make([]V, 0, tr.Len())
 	if tr.root != nil {

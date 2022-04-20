@@ -6,7 +6,7 @@ An efficient [B-tree](https://en.wikipedia.org/wiki/B-tree) implementation in Go
 
 ## Features
 
-- Support for [Generics](#generics) (Go 1.18+).
+- Support for Generics (Go 1.18+).
 - `Map` types for ordered key-value maps,
 - Fast bulk loading for pre-ordered data using the `Load()` method.
 - `Copy()` method with copy-on-write support.
@@ -25,20 +25,20 @@ $ go get github.com/kjx98/go-btree
 
 This package includes the following types of B-trees:
 
-- [`btree.Map`](#btreemap):
+- [`btree Map`](#btreemap):
 A fast B-tree for storing ordered key value pairs.
 Go 1.18+ 
 
-### BTree
+### btree.Map
 
 ```go
 // Basic
-Map()				// new K/V map w/ ordered key
+New()				// new K/V map w/ ordered key
 MapNew()			// new K/V map w/ lessCmp func
-Set(key, value)    // insert or replace an item
+Set(key, value)		// insert or replace an item
 Get(key) (value, bool)   // get an existing item
-Delete(key)        // delete an item
-Len()              // return the number of items in the map
+Delete(key)			// delete an item
+Len()				// return the number of items in the map
 
 // Iteration
 Scan(iter)         // scan items in ascending order
@@ -67,7 +67,7 @@ import (
 
 func main() {
 	// create a map
-	users := btree.Map[string, string]()
+	users := btree.New[string, string]()
 
 	// add some users
 	users.Set("user:4", "Andrea")
@@ -131,7 +131,7 @@ ok  	github.com/kjx98/go-btree	38.738s
 
 ## Contact
 
-Jesse Kuang [@kjx98](email://21cn.com/jkuang)
+Jesse Kuang [@kjx98](http://mail.21cn.com/jkuang)<br/>
 Josh Baker [@tidwall](http://twitter.com/tidwall)
 
 ## License
