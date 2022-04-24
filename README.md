@@ -114,6 +114,7 @@ func main() {
 
 This implementation was designed with performance in mind. 
 
+[![asciicast](https://asciinema.org/a/489805.svg)](https://asciinema.org/a/489805)
 
 ```
 goos: linux
